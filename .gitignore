@@ -1,0 +1,7 @@
+.DS_Store
+.vscode/*
+build*/**
+test/bin/**
+test/shaders.h
+!/**/.gitkeep
+!.vscode/tasks.json
