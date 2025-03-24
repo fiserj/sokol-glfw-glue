@@ -45,30 +45,14 @@ int main(int argc, char** argv) {
   GLFWwindow* window = glfwCreateWindow(640, 480, "Sokol-GLFW Glue Test", 0, 0);
   glfwSetFramebufferSizeCallback(window, render_frame);
 
-  int max_width  = 0;
-  int max_height = 0;
-  {
-    int           monitor_count;
-    GLFWmonitor** monitors = glfwGetMonitors(&monitor_count);
-    for (int i = 0; i < monitor_count; i++) {
-      const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
-
-      float xscale, yscale;
-      glfwGetMonitorContentScale(monitors[i], &xscale, &yscale);
-
-      int width  = (int)((float)mode->width * xscale);
-      int height = (int)((float)mode->height * yscale);
-
-      max_width  = width > max_width ? width : max_width;
-      max_height = height > max_height ? height : max_height;
-    }
-  }
+  int max_monitor_width, max_monitor_height;
+  sgg_max_monitor_size(&max_monitor_width, &max_monitor_height);
 
   sg_setup(&(sg_desc){
     .environment = sgg_environment(&(sgg_environment_desc){
       .window                    = window,
-      .backbuffer_min_width      = max_width,
-      .backbuffer_min_height     = max_height,
+      .backbuffer_min_width      = max_monitor_width,
+      .backbuffer_min_height     = max_monitor_height,
       .backbuffer_never_downsize = true,
     }),
     .logger.func = slog_func,

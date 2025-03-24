@@ -26,7 +26,6 @@ static struct {
   CAMetalLayer*        layer;
   id<MTLDevice>        device;
   id<CAMetalDrawable>  drawable;
-  CGSize               drawable_size;
 
 } g_state = {0};
 
@@ -86,13 +85,13 @@ sg_swapchain sgg_swapchain(void) {
   glfwGetFramebufferSize(g_state.desc.window, &width, &height);
 
   // clang-format off
-  int drawable_width  = resolve_size(g_state.layer.drawableSize.width , width , g_state.desc.backbuffer_min_width , g_state.desc.backbuffer_never_downsize);
-  int drawable_height = resolve_size(g_state.layer.drawableSize.height, height, g_state.desc.backbuffer_min_height, g_state.desc.backbuffer_never_downsize);
+  CGFloat drawable_width  = resolve_size(g_state.layer.drawableSize.width , width , g_state.desc.backbuffer_min_width , g_state.desc.backbuffer_never_downsize);
+  CGFloat drawable_height = resolve_size(g_state.layer.drawableSize.height, height, g_state.desc.backbuffer_min_height, g_state.desc.backbuffer_never_downsize);
   // clang-format on
 
   if (drawable_width != g_state.layer.drawableSize.width || drawable_height != g_state.layer.drawableSize.height) {
 #ifndef NDEBUG
-    printf("Drawable resized: %4d x %4d px\n", drawable_width, drawable_height);
+    printf("Drawable resized: %4.0f x %4.0f px\n", drawable_width, drawable_height);
 #endif
     g_state.layer.drawableSize = CGSizeMake(drawable_width, drawable_height);
   }
@@ -109,4 +108,36 @@ sg_swapchain sgg_swapchain(void) {
   };
 
   return (sg_swapchain){0};
+}
+
+void sgg_max_monitor_size(int* width, int* height) {
+  int           count    = 0;
+  GLFWmonitor** monitors = glfwGetMonitors(&count);
+
+  int max_width  = 0;
+  int max_height = 0;
+
+  for (int i = 0; i < count; i++) {
+    const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+
+    float xscale, yscale;
+    glfwGetMonitorContentScale(monitors[i], &xscale, &yscale);
+
+    int width  = (int)(xscale * mode->width);
+    int height = (int)(yscale * mode->height);
+
+    if (width > max_width) {
+      max_width = width;
+    }
+    if (height > max_height) {
+      max_height = height;
+    }
+  }
+
+  if (width != NULL) {
+    *width = max_width;
+  }
+  if (height != NULL) {
+    *height = max_height;
+  }
 }

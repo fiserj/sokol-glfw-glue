@@ -18,10 +18,12 @@ typedef struct sgg_environment_desc {
   // Window to render to.
   struct GLFWwindow* window;
 
-  // Minimum width of the backbuffer. Set to 0 to use the current window size.
+  // Minimum required width of the backbuffer. Set to 0 to use the exact window
+  // width.
   int backbuffer_min_width;
 
-  // Minimum height of the backbuffer. Set to 0 to use the current window size.
+  // Minimum required height of the backbuffer. Set to 0 to use the exact window
+  // height.
   int backbuffer_min_height;
 
   // If true, the backbuffer size will never be downsized. This is useful if you
@@ -37,6 +39,10 @@ struct sg_environment sgg_environment(const sgg_environment_desc* desc);
 
 // Returns the swapchain descriptor used in `sg_setup` call on every frame.
 struct sg_swapchain sgg_swapchain(void);
+
+// Helper function to retrieve the maximum size of any of the connected monitors
+// (as per GLFW's reporting).
+void sgg_max_monitor_size(int* width, int* height);
 
 #ifdef __cplusplus
 } // extern "C"
