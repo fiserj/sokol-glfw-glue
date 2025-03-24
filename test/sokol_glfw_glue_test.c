@@ -16,7 +16,7 @@ static void render_frame(GLFWwindow* window, int width, int height) {
       .load_action = SG_LOADACTION_CLEAR,
       .clear_value = {0.2f, 0.2f, 0.2f, 1.0f},
     },
-    .swapchain = sgg_swapchain_with_full_monitor_size(),
+    .swapchain = sgg_swapchain(),
   };
   sg_begin_pass(&pass);
 
@@ -42,13 +42,35 @@ int main(int argc, char** argv) {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-  GLFWwindow* window = glfwCreateWindow(320, 240, "Sokol-GLFW Glue Test", 0, 0);
-  sgg_init_for_window(window);
-
+  GLFWwindow* window = glfwCreateWindow(640, 480, "Sokol-GLFW Glue Test", 0, 0);
   glfwSetFramebufferSizeCallback(window, render_frame);
 
+  int max_width  = 0;
+  int max_height = 0;
+  {
+    int           monitor_count;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitor_count);
+    for (int i = 0; i < monitor_count; i++) {
+      const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+
+      float xscale, yscale;
+      glfwGetMonitorContentScale(monitors[i], &xscale, &yscale);
+
+      int width  = (int)((float)mode->width * xscale);
+      int height = (int)((float)mode->height * yscale);
+
+      max_width  = width > max_width ? width : max_width;
+      max_height = height > max_height ? height : max_height;
+    }
+  }
+
   sg_setup(&(sg_desc){
-    .environment = sgg_environment(),
+    .environment = sgg_environment(&(sgg_environment_desc){
+      .window                    = window,
+      .backbuffer_min_width      = max_width,
+      .backbuffer_min_height     = max_height,
+      .backbuffer_never_downsize = true,
+    }),
     .logger.func = slog_func,
   });
 

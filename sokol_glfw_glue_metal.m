@@ -4,9 +4,8 @@
 
 #include "sokol_glfw_glue.h"
 
-#include <assert.h>  // assert
-#include <stdbool.h> // bool
-#include <stddef.h>  // NULL
+#include <assert.h> // assert
+#include <stddef.h> // NULL
 #ifndef NDEBUG
 #  include <stdio.h> // printf
 #endif
@@ -23,35 +22,39 @@
 #include <sokol_gfx.h> // sg_environment, sg_swapchain
 
 static struct {
-  GLFWwindow*         window;
-  CAMetalLayer*       layer;
-  id<MTLDevice>       device;
-  id<CAMetalDrawable> drawable;
+  sgg_environment_desc desc;
+  CAMetalLayer*        layer;
+  id<MTLDevice>        device;
+  id<CAMetalDrawable>  drawable;
+  CGSize               drawable_size;
 
 } g_state = {0};
 
-void sgg_init_for_window(GLFWwindow* window) {
-  assert(g_state.window == NULL);
+sg_environment sgg_environment(const sgg_environment_desc* desc) {
+  assert(desc != NULL);
+  assert(desc->window != NULL);
+  assert(desc->backbuffer_min_width >= 0);
+  assert(desc->backbuffer_min_height >= 0);
 
-  id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+  if (g_state.desc.window == NULL) {
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
-  CAMetalLayer* layer = [CAMetalLayer layer];
-  layer.opaque        = YES;
-  layer.device        = device;
-  layer.pixelFormat   = MTLPixelFormatBGRA8Unorm;
+    CAMetalLayer* layer = [CAMetalLayer layer];
+    layer.opaque        = YES;
+    layer.device        = device;
+    layer.pixelFormat   = MTLPixelFormatBGRA8Unorm;
 
-  NSWindow* ns_window              = glfwGetCocoaWindow(window);
-  ns_window.contentView.layer      = layer;
-  ns_window.contentView.wantsLayer = YES;
+    NSWindow* ns_window              = glfwGetCocoaWindow(desc->window);
+    ns_window.contentView.layer      = layer;
+    ns_window.contentView.wantsLayer = YES;
 
-  g_state.window   = window;
-  g_state.layer    = layer;
-  g_state.device   = device;
-  g_state.drawable = nil;
-}
+    g_state.desc     = *desc;
+    g_state.layer    = layer;
+    g_state.device   = device;
+    g_state.drawable = nil;
+  }
 
-sg_environment sgg_environment(void) {
-  assert(g_state.window != NULL);
+  assert(g_state.desc.window == desc->window);
 
   return (sg_environment){
     .defaults = {
@@ -64,40 +67,28 @@ sg_environment sgg_environment(void) {
     }};
 }
 
-sg_swapchain sgg_swapchain(void) {
-  assert(g_state.window != NULL);
+static CGFloat resolve_size(CGFloat current_size, CGFloat requested_size, CGFloat min_size, bool never_downsize) {
+  if (min_size > requested_size) {
+    requested_size = min_size;
+  }
 
-  int width, height;
-  glfwGetFramebufferSize(g_state.window, &width, &height);
+  if (requested_size < current_size && never_downsize) {
+    return current_size;
+  }
 
-  g_state.layer.drawableSize = CGSizeMake(width, height);
-  g_state.drawable           = [g_state.layer nextDrawable];
-
-  return (sg_swapchain){
-    .width                  = width,
-    .height                 = height,
-    .sample_count           = 1,
-    .color_format           = SG_PIXELFORMAT_BGRA8,
-    .depth_format           = SG_PIXELFORMAT_NONE,
-    .metal.current_drawable = (__bridge const void*)g_state.drawable,
-  };
+  return requested_size;
 }
 
-sg_swapchain sgg_swapchain_with_full_monitor_size(void) {
-  assert(g_state.window != NULL);
+sg_swapchain sgg_swapchain(void) {
+  assert(g_state.desc.window != NULL);
 
   int width, height;
-  glfwGetFramebufferSize(g_state.window, &width, &height);
+  glfwGetFramebufferSize(g_state.desc.window, &width, &height);
 
-  int drawable_width  = g_state.layer.drawableSize.width;
-  int drawable_height = g_state.layer.drawableSize.height;
-
-  if (width > drawable_width) {
-    drawable_width = width * 2;
-  }
-  if (height > drawable_height) {
-    drawable_height = height * 2;
-  }
+  // clang-format off
+  int drawable_width  = resolve_size(g_state.layer.drawableSize.width , width , g_state.desc.backbuffer_min_width , g_state.desc.backbuffer_never_downsize);
+  int drawable_height = resolve_size(g_state.layer.drawableSize.height, height, g_state.desc.backbuffer_min_height, g_state.desc.backbuffer_never_downsize);
+  // clang-format on
 
   if (drawable_width != g_state.layer.drawableSize.width || drawable_height != g_state.layer.drawableSize.height) {
 #ifndef NDEBUG
