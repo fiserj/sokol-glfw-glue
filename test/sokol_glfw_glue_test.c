@@ -2,7 +2,11 @@
 #include <GLFW/glfw3.h>
 
 #define SOKOL_IMPL
-#define SOKOL_METAL
+#if defined(__APPLE__)
+#  define SOKOL_METAL
+#elif defined(_WIN32)
+#  define SOKOL_D3D11
+#endif
 #include <sokol_gfx.h>
 #include <sokol_log.h>
 
@@ -30,6 +34,8 @@ static void render_frame(GLFWwindow* window, int width, int height) {
 
   sg_end_pass();
   sg_commit();
+
+  sgg_present();
 }
 
 int main(int argc, char** argv) {
@@ -42,7 +48,7 @@ int main(int argc, char** argv) {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-  GLFWwindow* window = glfwCreateWindow(640, 480, "Sokol-GLFW Glue Test", 0, 0);
+  GLFWwindow* window = glfwCreateWindow(320, 320, "Sokol-GLFW Glue Test", 0, 0);
   glfwSetFramebufferSizeCallback(window, render_frame);
 
   int max_monitor_width, max_monitor_height;
@@ -70,6 +76,9 @@ int main(int argc, char** argv) {
     glfwGetFramebufferSize(window, &width, &height);
     render_frame(window, width, height);
   }
+
+  sg_shutdown();
+  sgg_shutdown();
 
   glfwDestroyWindow(window);
   glfwTerminate();

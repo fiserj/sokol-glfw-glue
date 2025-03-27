@@ -56,9 +56,28 @@ if(APPLE)
   )
   target_compile_options(${NAME} PRIVATE
     -fobjc-arc
+    -pedantic
+    -Wall
+    -Wextra
+    -Wno-missing-field-initializers
   )
   target_link_libraries(${NAME} PRIVATE
     "-framework Metal"
+  )
+elseif(WIN32)
+  target_sources(${NAME} PRIVATE
+    ${NAME}_dx11.c
+  )
+  if(MSVC)
+    target_compile_definitions(${NAME} PRIVATE
+      _CRT_SECURE_NO_WARNINGS
+    )
+    target_compile_options(${NAME} PRIVATE
+      /W4
+    )
+  endif()
+  target_link_libraries(${NAME} PRIVATE
+    # TODO
   )
 else()
   message(FATAL_ERROR "Unsupported ${PROJECT_NAME} platform.")

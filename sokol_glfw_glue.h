@@ -44,6 +44,10 @@ struct sg_swapchain sgg_swapchain(void);
 // (as per GLFW's reporting).
 void sgg_max_monitor_size(int* width, int* height);
 
+void sgg_present(void);
+
+void sgg_shutdown(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

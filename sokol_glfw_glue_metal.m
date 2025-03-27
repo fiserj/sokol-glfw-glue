@@ -21,6 +21,8 @@
 
 #include <sokol_gfx.h> // sg_environment, sg_swapchain
 
+#include "sokol_glfw_glue_common.h"
+
 static struct {
   sgg_environment_desc desc;
   CAMetalLayer*        layer;
@@ -110,34 +112,10 @@ sg_swapchain sgg_swapchain(void) {
   return (sg_swapchain){0};
 }
 
-void sgg_max_monitor_size(int* width, int* height) {
-  int           count    = 0;
-  GLFWmonitor** monitors = glfwGetMonitors(&count);
+void sgg_present(void) {
+  assert(g_state.desc.window != NULL);
+}
 
-  int max_width  = 0;
-  int max_height = 0;
-
-  for (int i = 0; i < count; i++) {
-    const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
-
-    float xscale, yscale;
-    glfwGetMonitorContentScale(monitors[i], &xscale, &yscale);
-
-    int width  = (int)(xscale * mode->width);
-    int height = (int)(yscale * mode->height);
-
-    if (width > max_width) {
-      max_width = width;
-    }
-    if (height > max_height) {
-      max_height = height;
-    }
-  }
-
-  if (width != NULL) {
-    *width = max_width;
-  }
-  if (height != NULL) {
-    *height = max_height;
-  }
+void sgg_shutdown(void) {
+  assert(g_state.desc.window != NULL);
 }
