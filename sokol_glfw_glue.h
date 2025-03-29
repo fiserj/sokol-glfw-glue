@@ -190,6 +190,7 @@ void sgg_max_monitor_size(int* width, int* height);
 #if defined(SOKOL_D3D11)
 #  define GLFW_EXPOSE_NATIVE_WIN32
 #  include <d3d11_1.h> // DXGI*, ID3D11*, IDXGI*
+#  include <dxgi1_3.h> // DXGIGetDebugInterface1
 #  ifndef NDEBUG
 #    include <dxgidebug.h> // ...
 #  endif
@@ -230,6 +231,73 @@ typedef struct {
 static sgg__state g_sgg_state = {0};
 
 #if defined(SOKOL_D3D11)
+// `sokol_gfx.h` doesn't define COBJMACROS before including D3D11 and DXGI headers, and now it's to late.
+#if !defined(__cplusplus) && !defined(COBJMACROS)
+
+#    define ID3D11Device_QueryInterface(This, riid, ppvObject) ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+#      define IDXGIDevice_GetParent(This, riid, ppParent) ((This)->lpVtbl->GetParent(This, riid, ppParent))
+#    define ID3D11DeviceContext1_Release(This) \
+      ((This)->lpVtbl->Release(This))
+#    define ID3D11DeviceContext1_QueryInterface(This, riid, ppvObject) \
+      ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+#    define ID3D11Texture2D_Release(This) \
+      ((This)->lpVtbl->Release(This))
+#    define IDXGISwapChain1_Release(This) \
+      ((This)->lpVtbl->Release(This))
+#    define IDXGIFactory2_CreateSwapChainForHwnd(This, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain) \
+      ((This)->lpVtbl->CreateSwapChainForHwnd(This, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain)) 
+
+#    define IDXGIAdapter1_Release(This) \
+      ((This)->lpVtbl->Release(This)) 
+
+
+
+
+#    define IDXGISwapChain1_ResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags) \
+      ((This)->lpVtbl->ResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags))
+
+#    define IDXGIFactory2_Release(This) \
+      ((This)->lpVtbl->Release(This)) 
+
+
+
+#    define IDXGISwapChain1_Present(This, SyncInterval, Flags) \
+      ((This)->lpVtbl->Present(This, SyncInterval, Flags))
+
+#    define IDXGISwapChain1_GetBuffer(This, Buffer, riid, ppSurface) \
+      ((This)->lpVtbl->GetBuffer(This, Buffer, riid, ppSurface))
+
+#    define IDXGIAdapter1_GetParent(This, riid, ppParent) \
+      ((This)->lpVtbl->GetParent(This, riid, ppParent)) 
+
+
+#    define IDXGISwapChain1_GetBackgroundColor(This, pColor) \
+      ((This)->lpVtbl->GetBackgroundColor(This, pColor))
+
+#    define IDXGIDevice1_Release(This) \
+      ((This)->lpVtbl->Release(This))
+
+#    define ID3D11Device1_Release(This) \
+      ((This)->lpVtbl->Release(This))
+
+#    define ID3D11Device_CreateRenderTargetView(This, pResource, pDesc, ppRTView) \
+      ((This)->lpVtbl->CreateRenderTargetView(This, pResource, pDesc, ppRTView)) 
+
+
+#    define ID3D11DeviceContext_QueryInterface(This, riid, ppvObject) \
+      ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+#    define ID3D11Device_Release(This) \
+      ((This)->lpVtbl->Release(This))
+
+#    define ID3D11DeviceContext_Release(This) \
+      ((This)->lpVtbl->Release(This)) 
+
+#    define ID3D11RenderTargetView_Release(This) \
+      ((This)->lpVtbl->Release(This)) 
+
+
+#endif // !__cplusplus && !COBJMACROS
+
 static void sgg__platform_init(sgg__state* state) {
   D3D_FEATURE_LEVEL    feature_levels[] = {D3D_FEATURE_LEVEL_11_1};
   ID3D11Device*        base_device;
@@ -289,7 +357,7 @@ static void sgg__platform_init(sgg__state* state) {
   hr = IDXGIFactory2_CreateSwapChainForHwnd(
     factory,
     (IUnknown*)device,
-    glfwGetWin32Window(desc->window),
+    glfwGetWin32Window(state->desc.window),
     &swapchain_desc,
     NULL,
     NULL,
@@ -320,7 +388,6 @@ static void sgg__platform_swapchain_backbuffer_size(sgg__state* state, double* w
 
 static void sgg__platform_resize_swapchain_backbuffer(sgg__state* state, int width, int height) {
   if (state->render_target_view) {
-    ID3D11DeviceContext_ClearState(state->device_context);
     ID3D11RenderTargetView_Release(state->render_target_view);
   }
 
@@ -334,9 +401,8 @@ static void sgg__platform_resize_swapchain_backbuffer(sgg__state* state, int wid
   HRESULT hr = IDXGISwapChain1_ResizeBuffers(state->swapchain, 0, (UINT)width, (UINT)height, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
   SOKOL_ASSERT(SUCCEEDED(hr));
 
-  IID              ID3D11Texture2D = {0x6f15aaf2, 0xd208, 0x4e89, 0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c};
   ID3D11Texture2D* backbuffer;
-  hr = IDXGISwapChain1_GetBuffer(state->swapchain, 0, &ID3D11Texture2D, (void**)&backbuffer);
+  hr = IDXGISwapChain1_GetBuffer(state->swapchain, 0, &IID_ID3D11Texture2D, (void**)&backbuffer);
   SOKOL_ASSERT(SUCCEEDED(hr));
 
   hr = ID3D11Device_CreateRenderTargetView(state->device, (ID3D11Resource*)backbuffer, NULL, &state->render_target_view);
@@ -535,14 +601,14 @@ void sgg_max_monitor_size(int* width, int* height) {
     float x_scale, y_scale;
     glfwGetMonitorContentScale(monitors[i], &x_scale, &y_scale);
 
-    int width  = (int)(x_scale * mode->width);
-    int height = (int)(y_scale * mode->height);
+    int mode_width  = (int)(x_scale * mode->width);
+    int mode_height = (int)(y_scale * mode->height);
 
-    if (width > max_width) {
-      max_width = width;
+    if (mode_width > max_width) {
+      max_width = mode_width;
     }
-    if (height > max_height) {
-      max_height = height;
+    if (mode_height > max_height) {
+      max_height = mode_height;
     }
   }
 

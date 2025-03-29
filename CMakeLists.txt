@@ -24,6 +24,7 @@ option(SGG_CHECK_DEPENDENCIES "Check SGG Dependencies" ON)
 
 if(SGG_BUILD_EXAMPLE)
   add_subdirectory(example)
+  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT sokol_glfw_glue_example)
 endif()
 
 if(SGG_CHECK_DEPENDENCIES)
