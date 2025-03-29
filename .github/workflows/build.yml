@@ -1,0 +1,42 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }} / ${{matrix.build_type}}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        config:
+          - {
+              name: "Windows / MSVC",
+              artifact: "Windows-MSVC.7z",
+              os: windows-latest,
+              cc: "cl",
+              cxx: "cl",
+            }
+          - {
+              name: "macOS / Clang",
+              artifact: "macOS.7z",
+              os: macos-latest,
+              cc: "clang",
+              cxx: "clang++",
+            }
+
+    steps:
+      - name: Info
+        run: |
+          cmake --version
+          cmake --help
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
