@@ -19,19 +19,19 @@ TURN_OFF(GLFW_INSTALL)
 FetchContent_Declare(
   glfw
   GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG        b35641f4a3c62aa86a0b3c983d163bc0fe36026d
+  GIT_TAG        e7ea71be039836da3a98cea55ae5569cb5eb885c
 )
 
 FetchContent_Declare(
   sokol
   GIT_REPOSITORY https://github.com/floooh/sokol.git
-  GIT_TAG        bcdf25ae58c4fe82cd444ea1ce3f1b8f2532c7ed
+  GIT_TAG        a9a2a5cea26701fc4b7fb8e2f95ac85d3f23ba9d
 )
 
 FetchContent_Declare(
   sokol-tools-bin
   GIT_REPOSITORY https://github.com/floooh/sokol-tools-bin.git
-  GIT_TAG        a86d0d152dd6a8488f892a223fa377a278a78195
+  GIT_TAG        9b5a3e2b57fe9783ba4d1f3249059bc4720b592f
 )
 
 FetchContent_MakeAvailable(
@@ -80,14 +80,14 @@ add_custom_command(
 )
 
 # ------------------------------------------------------------------------------
-# MAIN TARGET
+# MAIN TARGET / SGG EXAMPLE
 # ------------------------------------------------------------------------------
 
-set(NAME sokol_glfw_glue_test)
+set(NAME sokol_glfw_glue_example)
 
 add_executable(${NAME}
   shaders.h
-  sokol_glfw_glue_test.c
+  sokol_glfw_glue_example.c
 )
 
 target_include_directories(${NAME} PRIVATE
@@ -101,9 +101,15 @@ target_link_libraries(${NAME} PRIVATE
 
 if(APPLE)
   set_source_files_properties(
-    sokol_glfw_glue_test.c
+    sokol_glfw_glue_example.c
     PROPERTIES
     COMPILE_OPTIONS "-xobjective-c"
+  )
+  target_compile_options(${NAME} PRIVATE
+    -fobjc-arc
+  )
+  target_link_libraries(${NAME} PRIVATE
+    "-framework Metal"
   )
 endif()
 
@@ -133,5 +139,5 @@ set_target_properties(${NAME} PROPERTIES
 add_custom_command(
   TARGET ${NAME}
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${NAME}> "${CMAKE_SOURCE_DIR}/test/bin/$<TARGET_FILE_NAME:${NAME}>"
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${NAME}> "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<TARGET_FILE_NAME:${NAME}>"
 )
