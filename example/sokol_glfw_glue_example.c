@@ -1,6 +1,3 @@
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-
 #define SOKOL_IMPL
 #if defined(__APPLE__)
 #  define SOKOL_METAL

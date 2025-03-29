@@ -6,6 +6,11 @@ cmake_minimum_required(VERSION 3.19)
 
 project("Sokol-GLFW Glue")
 
+# TODO : Add desktop OpenGL.
+if(NOT APPLE AND NOT WIN32)
+  message(FATAL_ERROR "Unsupported SGG platform. Must be either macOS, or Windows.")
+endif()
+
 if(CMAKE_VERSION VERSION_LESS 3.21)
   get_property(PARENT_SOURCE_DIRECTORY DIRECTORY PROPERTY PARENT_DIRECTORY)
 
@@ -14,13 +19,15 @@ if(CMAKE_VERSION VERSION_LESS 3.21)
   endif()
 endif()
 
-# ------------------------------------------------------------------------------
-# TEST EXECUTABLE
-# ------------------------------------------------------------------------------
+option(SGG_BUILD_EXAMPLE "Build SGG Example" ${PROJECT_IS_TOP_LEVEL})
+option(SGG_CHECK_DEPENDENCIES "Check SGG Dependencies" ON)
 
-if(PROJECT_IS_TOP_LEVEL)
-  add_subdirectory(test)
-else()
+if(SGG_BUILD_EXAMPLE)
+  add_subdirectory(example)
+  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT sokol_glfw_glue_example)
+endif()
+
+if(SGG_CHECK_DEPENDENCIES)
   if(NOT TARGET glfw)
     message(FATAL_ERROR "Ensure that \"glfw\" is available as a target.")
   endif()
@@ -30,61 +37,11 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------
-# MAIN LIBRARY
+# MAIN TARGET / SGG LIBRARY
 # ------------------------------------------------------------------------------
 
 set(NAME sokol_glfw_glue)
 
-add_library(${NAME} STATIC
-  ${NAME}.h
-)
+add_library(${NAME} INTERFACE)
 
-target_include_directories(${NAME}
-  PUBLIC
-    .
-  PRIVATE
-    ${sokol_SOURCE_DIR}
-)
-
-target_link_libraries(${NAME} PRIVATE
-  glfw
-)
-
-if(APPLE)
-  target_sources(${NAME} PRIVATE
-    ${NAME}_metal.m
-  )
-  target_compile_options(${NAME} PRIVATE
-    -fobjc-arc
-    -pedantic
-    -Wall
-    -Wextra
-    -Wno-missing-field-initializers
-  )
-  target_link_libraries(${NAME} PRIVATE
-    "-framework Metal"
-  )
-elseif(WIN32)
-  target_sources(${NAME} PRIVATE
-    ${NAME}_dx11.c
-  )
-  if(MSVC)
-    target_compile_definitions(${NAME} PRIVATE
-      _CRT_SECURE_NO_WARNINGS
-    )
-    target_compile_options(${NAME} PRIVATE
-      /W4
-    )
-  endif()
-  target_link_libraries(${NAME} PRIVATE
-    # TODO
-  )
-else()
-  message(FATAL_ERROR "Unsupported ${PROJECT_NAME} platform.")
-endif()
-
-set_target_properties(${NAME} PROPERTIES
-  C_STANDARD 99
-  C_EXTENSIONS OFF
-  C_STANDARD_REQUIRED ON
-)
+target_include_directories(${NAME} INTERFACE .)
