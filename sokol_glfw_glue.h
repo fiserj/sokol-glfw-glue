@@ -167,7 +167,13 @@ void sgg_max_monitor_size(int* width, int* height);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif
+
+// C++ alias for the C function of the same name, just using a reference.
+inline struct sg_environment sgg_environment(const sgg_environment_desc& desc) {
+  return sgg_environment(&desc);
+}
+
+#endif // __cplusplus
 
 #endif // SOKOL_GLFW_GLUE_H
 
